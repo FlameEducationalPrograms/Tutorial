@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flame — Interactive Tutorial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS & THEME
+============================================================ */
+:root {
+  --flame-orange: #FF6B2B;
+  --flame-deep: #C94A0A;
+  --navy: #1A2540;
+  --gold: #D4A832;
+  --purple: #7C3AED;
+  --green: #10B981;
+  --blue: #1a73e8; /* AppSheet Blue */
+  --bg: #F7F6F2;
+  --bg-card: #FFFFFF;
+  --bg-panel: #EEF0F5;
+  --text-primary: #1A2540;
+  --text-secondary: #5A6380;
+  --text-muted: #9AA0B4;
+  --border: rgba(26,37,64,0.1);
+  --shadow: 0 4px 24px rgba(26,37,64,0.08);
+  --shadow-lg: 0 16px 48px rgba(26,37,64,0.14);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theme="dark"] {
+  --bg: #0F1422;
+  --bg-card: #1A2540;
+  --bg-panel: #243054;
+  --text-primary: #F0F2F8;
+  --text-secondary: #9AA0B4;
+  --text-muted: #5A6380;
+  --border: rgba(255,255,255,0.1);
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.4);
+}
+
+/* ============================================================
+   RESET & BASE
+============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background var(--transition), color var(--transition);
+  overflow-x: hidden;
+}
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+a { text-decoration: none; color: inherit; }
+
+/* ============================================================
+   UTILITY CLASSES
+============================================================ */
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn 0.4s ease forwards; }
+.slide-up { animation: slideUp 0.4s cubic-bezier(0.4,0,0.2,1) forwards; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes flameBounce { 0%,100%{ transform:translateY(0) rotate(-3deg); } 50%{ transform:translateY(-8px) rotate(3deg); } }
+@keyframes tooltipIn { from { opacity:0; transform:translateY(6px) scale(0.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+
+/* ============================================================
+   ONBOARDING OVERLAY
+============================================================ */
+#onboarding-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(10,14,26,0.85); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; animation: fadeIn 0.4s ease;
+}
+.onboarding-card {
+  background: var(--bg-card); border-radius: 24px; padding: 40px 36px;
+  max-width: 440px; width: 100%; text-align: center; box-shadow: var(--shadow-lg);
+  animation: slideUp 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+.onboarding-flame { font-size: 56px; display: block; margin-bottom: 16px; animation: flameBounce 2.5s ease-in-out infinite; }
+.onboarding-card h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 10px; }
+.onboarding-card p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.7; margin-bottom: 28px; }
+.btn-start {
+  width: 100%; padding: 14px; background: linear-gradient(135deg, var(--flame-orange), var(--flame-deep));
+  color: #fff; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 700;
+  box-shadow: 0 4px 20px rgba(255,107,43,0.35); transition: transform var(--transition);
+}
+.btn-start:hover { transform: translateY(-2px); }
+
+/* ============================================================
+   TOP NAVIGATION
+============================================================ */
+#topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 60px;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px;
+}
+.nav-logo { display: flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; }
+.nav-spacer { flex: 1; }
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+#role-badge {
+  display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 50px;
+  font-size: 0.78rem; font-weight: 600; background: var(--bg-panel); border: 1px solid var(--border);
+  cursor: pointer; color: var(--text-secondary);
+}
+#role-badge .role-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+#role-badge.active .role-dot { background: var(--flame-orange); }
+
+/* ============================================================
+   SECTIONS (Scrollable Pages Layout)
+============================================================ */
+.section { 
+  min-height: 100vh; 
+  scroll-margin-top: 60px; /* Offset for fixed top navbar during smooth scroll */
+  padding: 80px 20px 40px; 
+}
+
+/* ============================================================
+   LANDING PAGE
+============================================================ */
+#page-landing {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+}
+.landing-hero h1 { font-size: clamp(2.2rem, 7vw, 3.5rem); font-weight: 800; margin-bottom: 16px; }
+.landing-hero h1 em {
+  font-style: normal; background: linear-gradient(135deg, var(--flame-orange), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.landing-hero p { font-size: 1.05rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 36px; }
+.landing-cta {
+  padding: 16px 32px; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--flame-orange), var(--flame-deep));
+  color: #fff; font-size: 1.05rem; font-weight: 700; box-shadow: 0 6px 24px rgba(255,107,43,0.4);
+  transition: transform var(--transition);
+}
+.landing-cta:hover { transform: translateY(-2px); }
+
+/* ============================================================
+   ROLE SELECTION PAGE
+============================================================ */
+#page-roles { 
+  display: flex; flex-direction: column; align-items: center; 
+}
+.roles-header { text-align: center; margin-bottom: 40px; }
+.roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 880px; width: 100%; }
+.role-card {
+  background: var(--bg-card); border-radius: var(--radius); border: 2px solid var(--border);
+  padding: 28px 24px; cursor: pointer; transition: all 0.3s ease;
+}
+.role-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.role-card[data-role="manager"]:hover { border-color: var(--flame-orange); }
+.role-card[data-role="servant"]:hover { border-color: var(--purple); }
+.role-card[data-role="auditor"]:hover { border-color: var(--gold); }
+.role-card-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
+.role-card[data-role="manager"] .role-card-icon { background: rgba(255,107,43,0.12); }
+.role-card[data-role="servant"] .role-card-icon { background: rgba(124,58,237,0.12); }
+.role-card[data-role="auditor"] .role-card-icon { background: rgba(212,168,50,0.12); }
+.role-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+.role-card p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 18px; }
+.role-card-btn { width: 100%; padding: 12px; color: #fff; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 600; }
+
+/* ============================================================
+   TUTORIAL PAGE & SIDEBAR
+============================================================ */
+#page-tutorial {
+  display: none; /* Hidden until a role is chosen */
+}
+#page-tutorial.active {
+  display: block; 
+}
+
+.tutorial-layout { display: flex; max-width: 1200px; width: 100%; margin: 0 auto; gap: 24px; align-items: flex-start; }
+.tutorial-sidebar { width: 240px; flex-shrink: 0; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 80px; }
+.sidebar-role-badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--bg-panel); margin-bottom: 18px; }
+.sidebar-role-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.sidebar-role-name { font-size: 0.85rem; font-weight: 700; }
+.sidebar-step-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); margin-bottom: 2px; }
+.sidebar-step-item:hover { background: var(--bg-panel); }
+.sidebar-step-item.active { background: rgba(255,107,43,0.1); }
+.step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-panel); border: 1px solid var(--border); font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.sidebar-step-item.completed .step-num { background: var(--green); color: #fff; }
+.sidebar-step-item.active .step-num { background: var(--flame-orange); color: #fff; }
+.sidebar-step-item.active .step-label { color: var(--flame-orange); font-weight: 600; }
+.step-label { font-size: 0.82rem; color: var(--text-muted); }
+.tutorial-main { flex: 1; min-width: 0; }
+
+/* Progress & Step Card */
+.progress-bar-wrap { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 20px; margin-bottom: 20px; }
+.progress-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.progress-label { font-size: 0.82rem; font-weight: 600; }
+.progress-count { font-size: 0.82rem; font-weight: 700; color: var(--flame-orange); }
+.progress-track { width: 100%; height: 6px; background: var(--bg-panel); border-radius: 99px; }
+.progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--flame-orange), var(--gold)); transition: width 0.6s ease; }
+.step-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; }
+.step-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
+.step-card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.step-card-title { font-size: 1.1rem; font-weight: 700; }
+.step-card-subtitle { font-size: 0.8rem; color: var(--text-muted); }
+.step-card-body { padding: 24px; }
+
+/* Tooltip & Navigation */
+.tooltip-box { background: var(--navy); color: #fff; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 0.82rem; line-height: 1.5; margin-top: 20px; position: relative; }
+.tooltip-box::before { content: ''; position: absolute; top: -7px; left: 20px; border: 7px solid transparent; border-bottom-color: var(--navy); border-top: none; }
+.tip-title { font-weight: 700; color: var(--gold-light); margin-bottom: 4px; }
+.step-nav { display: flex; gap: 12px; align-items: center; justify-content: space-between; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 20px; }
+.btn-nav { padding: 12px 20px; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600; }
+.btn-prev { background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-secondary); }
+.btn-next { background: linear-gradient(135deg, var(--flame-orange), var(--flame-deep)); color: #fff; }
+.btn-next:disabled { opacity: 0.5; }
+
+/* ============================================================
+   APPSHEET MOCK UI
+============================================================ */
+.appsheet-container {
+  background: #f1f3f4; border-radius: 12px; border: 1px solid var(--border); overflow: hidden;
+  display: flex; flex-direction: column; position: relative; font-family: sans-serif;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); min-height: 380px; max-width: 320px; margin: 0 auto;
+}
+.appsheet-header {
+  background: #ffffff; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #e0e0e0; font-weight: 500; font-size: 16px; color: #202124; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.appsheet-content { flex: 1; overflow-y: auto; padding: 0; background: #f8f9fa; }
+.appsheet-bottom-nav {
+  background: #ffffff; border-top: 1px solid #e0e0e0; display: flex; justify-content: space-around; padding: 10px 0;
+}
+.appsheet-tab { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #5f6368; gap: 4px; }
+.appsheet-tab.active { color: var(--blue); }
+.appsheet-fab {
+  position: absolute; bottom: 70px; right: 16px; width: 56px; height: 56px; border-radius: 50%;
+  background: var(--blue); color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+.appsheet-form-field { padding: 14px 16px; border-bottom: 1px solid #e0e0e0; background: #ffffff; }
+.appsheet-form-label { font-size: 12px; color: var(--blue); margin-bottom: 6px; font-weight: 500; }
+.appsheet-form-value { font-size: 15px; color: #202124; }
+.appsheet-form-actions { display: flex; justify-content: flex-end; gap: 24px; padding: 16px; background: #ffffff; }
+.appsheet-btn { font-size: 14px; font-weight: 500; color: var(--blue); text-transform: uppercase; cursor: pointer; }
+.appsheet-list-group { background: #f1f3f4; padding: 10px 16px; font-size: 13px; font-weight: 500; color: #5f6368; }
+.appsheet-list-item { padding: 14px 16px; background: #ffffff; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+.appsheet-modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.appsheet-modal { background: #ffffff; padding: 24px; border-radius: 8px; width: 85%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tutorial-sidebar { display: none; }
+  .tutorial-layout { padding: 0; }
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-panel); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING POPUP -->
+<div id="onboarding-overlay">
+  <div class="onboarding-card">
+    <span class="onboarding-flame">🔥</span>
+    <h2>Welcome to Flame Tutorial</h2>
+    <p>This interactive guide matches real screens to help you master Flame educational management.</p>
+    <button class="btn-start" onclick="closeOnboarding()">Let's Get Started →</button>
+  </div>
+</div>
+
+<!-- TOP NAVIGATION -->
+<nav id="topnav">
+  <div class="nav-logo"><span>🔥</span> Flame</div>
+  <div class="nav-spacer"></div>
+  <button id="role-badge" class="hidden" onclick="document.getElementById('page-roles').scrollIntoView({behavior: 'smooth'})">
+    <span class="role-dot"></span><span id="role-badge-text">Change Role</span>
+  </button>
+  <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span></button>
+</nav>
+
+<!-- LANDING PAGE -->
+<div id="page-landing" class="section">
+  <div class="landing-hero">
+    <h1>Master <em>Flame</em><br>in Minutes</h1>
+    <p>An interactive tutorial simulating real AppSheet screens.</p>
+    <button class="landing-cta" onclick="document.getElementById('page-roles').scrollIntoView({behavior: 'smooth'})">Start Tutorial →</button>
+  </div>
+</div>
+
+<!-- ROLE SELECTION PAGE -->
+<div id="page-roles" class="section">
+  <div style="max-width:900px; width: 100%; margin:0 auto;">
+    <div class="roles-header"><h2>Choose Your Role</h2></div>
+    <div class="roles-grid">
+      <div class="role-card" data-role="manager" onclick="selectRoleAndGo('manager')">
+        <div class="role-card-icon">🏛️</div>
+        <h3>Manager</h3>
+        <p>Control hub: Manage schools, servants, auditors, and systems.</p>
+        <button class="role-card-btn" style="background:var(--flame-orange)">Start Manager Tutorial</button>
+      </div>
+      <div class="role-card" data-role="servant" onclick="selectRoleAndGo('servant')">
+        <div class="role-card-icon">🙌</div>
+        <h3>Servant</h3>
+        <p>Field user: Execute assigned tasks and log values seamlessly.</p>
+        <button class="role-card-btn" style="background:var(--purple)">Start Servant Tutorial</button>
+      </div>
+      <div class="role-card" data-role="auditor" onclick="selectRoleAndGo('auditor')">
+        <div class="role-card-icon">🔎</div>
+        <h3>Auditor</h3>
+        <p>Quality control: Monitor executions without modifying records.</p>
+        <button class="role-card-btn" style="background:var(--gold)">Start Auditor Tutorial</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TUTORIAL PAGE -->
+<div id="page-tutorial" class="section">
+  <div class="tutorial-layout">
+    <aside class="tutorial-sidebar" id="tutorial-sidebar">
+      <div class="sidebar-role-badge">
+        <div class="sidebar-role-dot" id="sidebar-dot"></div>
+        <span class="sidebar-role-name" id="sidebar-role-name">Role</span>
+      </div>
+      <div id="sidebar-steps-list"></div>
+    </aside>
+    <main class="tutorial-main">
+      <div class="progress-bar-wrap">
+        <div class="progress-header">
+          <span class="progress-label" id="progress-label">Step</span>
+          <span class="progress-count" id="progress-count">1 / 1</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div id="step-content"></div>
+      <div class="step-nav" id="step-nav">
+        <button class="btn-nav btn-prev" id="btn-prev" onclick="prevStep()">← Previous</button>
+        <span class="step-counter" id="step-counter" style="font-size:14px;font-weight:700;">1 / 1</span>
+        <button class="btn-nav btn-next" id="btn-next" onclick="nextStep()">Next →</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA: TUTORIAL STEPS WITH ACCURATE APPSHEET UI
+============================================================ */
+const TUTORIALS = {
+  manager: {
+    color: '#FF6B2B', name: 'Manager',
+    steps: [
+      {
+        title: `Welcome to Manager Dashboard`,
+        subtitle: `Your control hub for educational programs`,
+        icon: '🏛️', iconBg: 'rgba(255,107,43,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            The Manager role gives you four main modules at the bottom of your screen: Schools, Servants, Auditors, and Systems. Before you can assign tasks, you need to populate these lists.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Schools</span></div>
+              <div style="display:flex; gap:16px;"><span>🔍</span> <span>🔄</span></div>
+            </div>
+            <div class="appsheet-content" style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:#5f6368; padding-top:40px;">
+              <span style="font-size:40px; margin-bottom:12px; opacity:0.6;">📁</span>
+              <span style="font-size:15px;">No items</span>
+            </div>
+            <div class="appsheet-fab">+</div>
+            <div class="appsheet-bottom-nav">
+              <div class="appsheet-tab active"><span>🏫</span> Schools</div>
+              <div class="appsheet-tab"><span>🙌</span> Servants</div>
+              <div class="appsheet-tab"><span>🔎</span> Auditors</div>
+              <div class="appsheet-tab"><span>⚙️</span> Systems</div>
+            </div>
+          </div>
+          <div class="tooltip-box"><div class="tip-title">💡 Getting Started</div>Tap the floating "+" button to add your first educational entity.</div>
+        `
+      },
+      {
+        title: `Adding Schools`,
+        subtitle: `Tap + in Schools tab`,
+        icon: '🏫', iconBg: 'rgba(255,107,43,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Fill in the school details. Notice that "Save" and "Cancel" buttons are located at the bottom of the form view.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Schools Form</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">School Name</div>
+                <div class="appsheet-form-value">SPIMS</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Country</div>
+                <div class="appsheet-form-value">Egypt</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Address</div>
+                <div class="appsheet-form-value">399J+82P, Madinat Al-Amal, Nasr City...</div>
+              </div>
+              <div class="appsheet-form-field" style="border-bottom:none; min-height:80px;">
+                <div class="appsheet-form-label">Notes</div>
+              </div>
+              <div class="appsheet-form-actions">
+                <div class="appsheet-btn" style="color:#5f6368;">Cancel</div>
+                <div class="appsheet-btn">Save</div>
+              </div>
+            </div>
+          </div>
+          <div class="tooltip-box"><div class="tip-title">💡 Form Organization</div>Once saved, schools are automatically grouped by "Country" in your list view.</div>
+        `
+      },
+      {
+        title: `Adding Servants`,
+        subtitle: `Tap + in Servants tab`,
+        icon: '🙌', iconBg: 'rgba(255,107,43,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Servants execute tasks. When adding them, you toggle their Type between Local and Resident. This helps in filtering and organizing your workforce.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Servants Form</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Servant Name*</div>
+                <div class="appsheet-form-value">Michael E</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Type</div>
+                <div style="display:flex; gap:16px; margin-top:8px;">
+                  <div style="display:flex; align-items:center; gap:6px; font-size:14px; color:#5f6368;">
+                    <div style="width:16px; height:16px; border-radius:50%; border:2px solid #5f6368;"></div> Local
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:14px; color:#333;">
+                    <div style="width:16px; height:16px; border-radius:50%; border:2px solid var(--blue); position:relative;">
+                       <div style="position:absolute; inset:2px; background:var(--blue); border-radius:50%;"></div>
+                    </div> Resident
+                  </div>
+                </div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Whatsapp No.</div>
+                <div class="appsheet-form-value">01227253329</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Email</div>
+                <div class="appsheet-form-value">michaeledward@ymail.com</div>
+              </div>
+              <div class="appsheet-form-actions">
+                <div class="appsheet-btn" style="color:#5f6368;">Cancel</div>
+                <div class="appsheet-btn">Save</div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Adding Auditors`,
+        subtitle: `Tap + in Auditors tab`,
+        icon: '🔎', iconBg: 'rgba(255,107,43,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Auditors act as quality control. Their form is similar but includes a "Link" field for external reference documents or guidelines.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Auditors Form</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Auditor Name</div>
+                <div class="appsheet-form-value">Fr. Boles</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Whatsapp No.</div>
+                <div class="appsheet-form-value">0123456789</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Link</div>
+                <div class="appsheet-form-value" style="color:var(--text-muted);">http://...</div>
+              </div>
+              <div class="appsheet-form-actions">
+                <div class="appsheet-btn" style="color:#5f6368;">Cancel</div>
+                <div class="appsheet-btn">Save</div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Creating Systems`,
+        subtitle: `Tie it all together`,
+        icon: '⚙️', iconBg: 'rgba(255,107,43,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Systems link everything together. You assign a specific <strong>Task</strong> or <strong>Value</strong> to a School, assign it to a Servant, and optionally link an Auditor.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Systems Form</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">School Name</div>
+                <div class="appsheet-form-value" style="display:flex; justify-content:space-between;">St. Paul <span>▼</span></div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Type</div>
+                <div style="display:flex; gap:16px; margin-top:8px;">
+                  <div style="display:flex; align-items:center; gap:6px; font-size:14px; color:#333;">
+                    <div style="width:16px; height:16px; border-radius:50%; border:2px solid var(--blue); position:relative;">
+                       <div style="position:absolute; inset:2px; background:var(--blue); border-radius:50%;"></div>
+                    </div> Task
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:14px; color:#5f6368;">
+                    <div style="width:16px; height:16px; border-radius:50%; border:2px solid #5f6368;"></div> Value
+                  </div>
+                </div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Description</div>
+                <div class="appsheet-form-value">Morning Prayer</div>
+              </div>
+              <div class="appsheet-form-field">
+                <div class="appsheet-form-label">Assigned To</div>
+                <div class="appsheet-form-value" style="display:flex; justify-content:space-between;">Mariam E <span>▼</span></div>
+              </div>
+            </div>
+          </div>
+        `
+      }
+    ]
+  },
+  servant: {
+    color: '#7C3AED', name: 'Servant',
+    steps: [
+      {
+        title: `Set Your Identity`,
+        subtitle: `Settings menu → select username`,
+        icon: '👤', iconBg: 'rgba(124,58,237,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            As a Servant, your first step is opening the <strong>Settings</strong> view to define who you are. The app uses radio buttons to lock in your identity.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Settings</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field" style="border-bottom:none;">
+                <div class="appsheet-form-label">username</div>
+                <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; color:#333;">
+                    <div style="width:18px; height:18px; border-radius:50%; border:2px solid var(--blue); position:relative;">
+                       <div style="position:absolute; inset:2.5px; background:var(--blue); border-radius:50%;"></div>
+                    </div> Michael E
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; color:#5f6368;">
+                    <div style="width:18px; height:18px; border-radius:50%; border:2px solid #5f6368;"></div> Mariam E
+                  </div>
+                </div>
+              </div>
+              <div class="appsheet-form-actions" style="margin-top:20px;">
+                <div class="appsheet-btn" style="color:#5f6368;">Cancel</div>
+                <div class="appsheet-btn">Save</div>
+              </div>
+            </div>
+          </div>
+          <div class="tooltip-box"><div class="tip-title">💡 One-Time Setup</div>Setting your username ensures your executions are logged under your name.</div>
+        `
+      },
+      {
+        title: `Your Task List`,
+        subtitle: `Systems tab`,
+        icon: '📋', iconBg: 'rgba(124,58,237,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Your dashboard contains only two tabs: <strong>Systems</strong> and <strong>Execution Logs</strong>. Systems are grouped by School/Project (like SPIMS 1).
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Systems</span></div>
+              <div style="display:flex; gap:16px;"><span>🔍</span> <span>🔄</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-list-group">SPIMS 1</div>
+              <div class="appsheet-list-item">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span style="font-weight:500; font-size:15px; color:#202124;">Value</span>
+                  <span style="font-size:13px; color:#5f6368;">Praying</span>
+                </div>
+                <div style="color:#5f6368;">❯</div>
+              </div>
+            </div>
+            <div class="appsheet-bottom-nav">
+              <div class="appsheet-tab active"><span>⚙️</span> Systems</div>
+              <div class="appsheet-tab"><span>📜</span> Execution Logs</div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Executing Tasks`,
+        subtitle: `Tap task → Confirm`,
+        icon: '✅', iconBg: 'rgba(124,58,237,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            When you tap a task, the action requires confirmation. A dialog appears asking <strong>"Are you sure?"</strong>. Tap DONE to execute.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Value</span></div>
+            </div>
+            <div class="appsheet-content" style="filter: blur(2px);">
+              <div class="appsheet-list-item" style="border-bottom:none;">
+                <div style="display:flex; flex-direction:column;">
+                  <span style="font-weight:500; font-size:15px;">Value</span>
+                  <span style="font-size:13px; color:#5f6368;">Praying</span>
+                </div>
+              </div>
+            </div>
+            <div class="appsheet-modal-overlay">
+              <div class="appsheet-modal">
+                <div style="font-size:18px; font-weight:500; margin-bottom:16px; color:#202124;">Confirm</div>
+                <div style="margin-bottom:32px; font-size:15px; color:#5f6368;">Are you sure?</div>
+                <div style="display:flex; justify-content:flex-end; gap:24px;">
+                  <div class="appsheet-btn" style="color:#5f6368;">NO</div>
+                  <div class="appsheet-btn">DONE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Viewing Your History`,
+        subtitle: `Execution Logs tab`,
+        icon: '📈', iconBg: 'rgba(124,58,237,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            The Execution Logs tab shows a timeline of your completed tasks. Each entry displays the type, date, and task description.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Execution Logs</span></div>
+              <div style="display:flex; gap:16px;"><span>🔍</span> <span>🔄</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-list-group">Value 1</div>
+              <div class="appsheet-list-item">
+                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span style="font-weight:500; font-size:15px; color:#202124;">Value</span>
+                    <span style="font-size:13px; color:#5f6368;">3/26/2026</span>
+                  </div>
+                  <span style="font-size:13px; color:#5f6368;">Praying</span>
+                </div>
+                <div style="margin-left:16px; font-size:18px; color:#5f6368;">❯</div>
+              </div>
+            </div>
+            <div class="appsheet-bottom-nav">
+              <div class="appsheet-tab"><span>⚙️</span> Systems</div>
+              <div class="appsheet-tab active"><span>📜</span> Execution Logs</div>
+            </div>
+          </div>
+        `
+      }
+    ]
+  },
+  auditor: {
+    color: '#D4A832', name: 'Auditor',
+    steps: [
+      {
+        title: `Auditor Identity`,
+        subtitle: `Settings menu → select username`,
+        icon: '👤', iconBg: 'rgba(212,168,50,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            Like Servants, Auditors must select their identity in Settings. The list will show verified Auditor names.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Settings</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-form-field" style="border-bottom:none;">
+                <div class="appsheet-form-label">username</div>
+                <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; color:#333;">
+                    <div style="width:18px; height:18px; border-radius:50%; border:2px solid var(--blue); position:relative;">
+                       <div style="position:absolute; inset:2.5px; background:var(--blue); border-radius:50%;"></div>
+                    </div> Fr. Boles
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; font-size:15px; color:#5f6368;">
+                    <div style="width:18px; height:18px; border-radius:50%; border:2px solid #5f6368;"></div> Fr. Mina
+                  </div>
+                </div>
+              </div>
+              <div class="appsheet-form-actions" style="margin-top:20px;">
+                <div class="appsheet-btn" style="color:#5f6368;">Cancel</div>
+                <div class="appsheet-btn">Done</div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Reviewing Executions`,
+        subtitle: `Systems tab`,
+        icon: '📋', iconBg: 'rgba(212,168,50,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            You see a filtered view of systems assigned to you. You can review items but your actions are marked strictly as audits.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Systems</span></div>
+              <div style="display:flex; gap:16px;"><span>🔍</span> <span>🔄</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-list-group">SPIMS 1</div>
+              <div class="appsheet-list-item">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <span style="font-weight:500; font-size:15px; color:#202124;">Value</span>
+                  <span style="font-size:13px; color:#5f6368;">Praying</span>
+                </div>
+                <div style="color:#5f6368;">❯</div>
+              </div>
+            </div>
+            <div class="appsheet-bottom-nav">
+              <div class="appsheet-tab active"><span>⚙️</span> Systems</div>
+              <div class="appsheet-tab"><span>📜</span> Execution Logs</div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `Auditing Task Logs`,
+        subtitle: `Confirm modal`,
+        icon: '🔎', iconBg: 'rgba(212,168,50,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            When verifying a log, the confirmation modal ensures you are performing an <strong>AUDIT</strong>, creating a specific Quality Control (QC) timestamp separate from the servant's execution.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>←</span> <span>Value</span></div>
+            </div>
+            <div class="appsheet-content" style="filter: blur(2px);">
+              <div class="appsheet-list-item" style="border-bottom:none;">
+                <div style="display:flex; flex-direction:column;">
+                  <span style="font-weight:500; font-size:15px;">Value</span>
+                  <span style="font-size:13px; color:#5f6368;">Praying</span>
+                </div>
+              </div>
+            </div>
+            <div class="appsheet-modal-overlay">
+              <div class="appsheet-modal">
+                <div style="font-size:18px; font-weight:500; margin-bottom:16px; color:#202124;">Confirm</div>
+                <div style="margin-bottom:32px; font-size:15px; color:#5f6368;">Are you sure?</div>
+                <div style="display:flex; justify-content:flex-end; gap:24px;">
+                  <div class="appsheet-btn" style="color:#5f6368;">NO</div>
+                  <div class="appsheet-btn">AUDIT</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      {
+        title: `QC Log History`,
+        subtitle: `Execution Logs view`,
+        icon: '✅', iconBg: 'rgba(212,168,50,0.12)',
+        content: `
+          <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+            In the Execution Logs, you will see a QC (Quality Control) tag on audited items, giving managers proof that the activity was independently verified.
+          </p>
+          <div class="appsheet-container">
+            <div class="appsheet-header">
+              <div style="display:flex; gap:16px; align-items:center;"><span>☰</span> <span>Execution Logs</span></div>
+              <div style="display:flex; gap:16px;"><span>🔍</span> <span>🔄</span></div>
+            </div>
+            <div class="appsheet-content">
+              <div class="appsheet-list-group">SPIMS 1</div>
+              <div class="appsheet-list-item">
+                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                  <div style="display:flex; justify-content:space-between;">
+                    <span style="font-weight:500; font-size:15px; color:#202124;">Value</span>
+                    <span style="font-size:13px; color:#5f6368;">3/26/2026</span>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:13px; color:#5f6368;">Praying</span>
+                    <span style="background:rgba(212,168,50,0.15); color:var(--gold); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px;">QC</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="appsheet-bottom-nav">
+              <div class="appsheet-tab"><span>⚙️</span> Systems</div>
+              <div class="appsheet-tab active"><span>📜</span> Execution Logs</div>
+            </div>
+          </div>
+        `
+      }
+    ]
+  }
+};
+
+/* ============================================================
+   STATE & NAVIGATION
+============================================================ */
+let currentRole = null, currentStep = 0, totalSteps = 0;
+
+function selectRoleAndGo(role) {
+  currentRole = role; currentStep = 0;
+  const data = TUTORIALS[role]; totalSteps = data.steps.length;
+  
+  const badge = document.getElementById('role-badge');
+  badge.classList.remove('hidden'); badge.classList.add('active');
+  document.getElementById('role-badge-text').textContent = data.name;
+  
+  document.getElementById('sidebar-dot').style.background = data.color;
+  document.getElementById('sidebar-role-name').textContent = data.name + ' Tutorial';
+  
+  // Display the step content
+  buildSidebarSteps(); 
+  renderStep(); 
+  
+  // Unhide the tutorial container and smoothly scroll to it
+  const tutorialPage = document.getElementById('page-tutorial');
+  tutorialPage.classList.add('active');
+  document.getElementById('step-nav').style.display = 'flex';
+  tutorialPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function buildSidebarSteps() {
+  const data = TUTORIALS[currentRole], list = document.getElementById('sidebar-steps-list');
+  list.innerHTML = '';
+  data.steps.forEach((step, idx) => {
+    const item = document.createElement('div');
+    item.className = 'sidebar-step-item' + (idx === currentStep ? ' active' : '') + (idx < currentStep ? ' completed' : '');
+    item.onclick = () => jumpToStep(idx);
+    item.innerHTML = `<div class="step-num">${idx < currentStep ? '✓' : idx + 1}</div><span class="step-label">${step.title}</span>`;
+    list.appendChild(item);
+  });
+}
+
+function updateSidebar() {
+  document.querySelectorAll('.sidebar-step-item').forEach((item, idx) => {
+    item.className = 'sidebar-step-item' + (idx < currentStep ? ' completed' : '') + (idx === currentStep ? ' active' : '');
+    item.querySelector('.step-num').textContent = idx < currentStep ? '✓' : idx + 1;
+  });
+}
+
+function jumpToStep(idx) { 
+  currentStep = idx; 
+  renderStep(); 
+  document.getElementById('page-tutorial').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStep() {
+  const step = TUTORIALS[currentRole].steps[currentStep];
+  const isLast = currentStep === totalSteps - 1, isFirst = currentStep === 0;
+  
+  document.getElementById('progress-fill').style.width = ((currentStep + 1) / totalSteps * 100).toFixed(0) + '%';
+  document.getElementById('progress-count').textContent = `${currentStep + 1} / ${totalSteps}`;
+  document.getElementById('progress-label').textContent = step.title;
+  document.getElementById('step-counter').textContent = `${currentStep + 1} / ${totalSteps}`;
+  
+  document.getElementById('btn-prev').style.visibility = isFirst ? 'hidden' : 'visible';
+  const btnNext = document.getElementById('btn-next');
+  if (isLast) { btnNext.textContent = '🎉 Complete!'; btnNext.onclick = showCompletion; } 
+  else { btnNext.innerHTML = 'Next →'; btnNext.onclick = nextStep; }
+  
+  document.getElementById('step-content').innerHTML = `
+    <div class="step-card slide-up">
+      <div class="step-card-header">
+        <div class="step-card-icon" style="background:${step.iconBg}">${step.icon}</div>
+        <div><div class="step-card-title">${step.title}</div><div class="step-card-subtitle">${step.subtitle}</div></div>
+      </div>
+      <div class="step-card-body">${step.content}</div>
+    </div>
+  `;
+  
+  updateSidebar();
+}
+
+function nextStep() { 
+  if (currentStep < totalSteps - 1) { 
+    currentStep++; 
+    renderStep(); 
+    document.getElementById('page-tutorial').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } 
+}
+
+function prevStep() { 
+  if (currentStep > 0) { 
+    currentStep--; 
+    renderStep(); 
+    document.getElementById('page-tutorial').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } 
+}
+
+function showCompletion() {
+  document.getElementById('step-content').innerHTML = `
+    <div class="step-card slide-up" style="text-align:center; padding:48px 24px;">
+      <span style="font-size:64px; display:block; margin-bottom:16px;">🎉</span>
+      <h2 style="font-size:1.6rem; font-weight:800; margin-bottom:10px;">Tutorial Complete!</h2>
+      <p style="color:var(--text-secondary); margin-bottom:28px;">You've completed the ${TUTORIALS[currentRole].name} guide.</p>
+      <div style="display:flex; gap:12px; justify-content:center;">
+        <button style="padding:12px 24px; border-radius:10px; background:var(--bg-panel); font-weight:600;" onclick="jumpToStep(0)">↩ Restart</button>
+        <button style="padding:12px 24px; border-radius:10px; background:var(--blue); color:#fff; font-weight:600;" onclick="document.getElementById('page-roles').scrollIntoView({behavior: 'smooth'})">Try Another Role</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('step-nav').style.display = 'none';
+  document.getElementById('page-tutorial').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ============================================================
+   UTILITIES
+============================================================ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
+}
+function closeOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 300);
+}
+</script>
+</body>
+</html>
